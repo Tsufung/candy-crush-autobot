@@ -2,13 +2,21 @@ package com.candyrush.autobot.service
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
+import android.graphics.Bitmap
 import android.graphics.Path
+import android.os.Build
+import android.view.Display
 import android.view.accessibility.AccessibilityEvent
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 /**
- * Dịch vụ Trợ Năng (Accessibility Service)
- * Đảm nhiệm việc mô phỏng cử chỉ vuốt tay (gesture swipe) tự động trên màn hình Android
- * mà không cần root thiết bị.
+ * Dịch vụ Trợ Năng (Accessibility Service) Meta 2026
+ * Đảm nhiệm:
+ * 1. Chụp ảnh màn hình trực tiếp bằng Accessibility API (Android 11+)
+ *    - HOÀN TOÀN KHÔNG CẦN MediaProjection / ghi màn hình
+ *    - KHÔNG hiện thông báo cảnh báo phiền toái
+ * 2. Thực hiện thao tác vuốt tráo kẹo mô phỏng ngón tay người dùng
  */
 class CandyAccessibilityService : AccessibilityService() {
 
@@ -25,7 +33,6 @@ class CandyAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // Không cần xử lý sự kiện giao diện thông thường
     }
 
     override fun onInterrupt() {
@@ -38,12 +45,60 @@ class CandyAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * Chụp ảnh màn hình 1 lần bằng Accessibility API (Nhanh, im lặng, không popup)
+     */
+    fun takeScreenCapture(callback: (Bitmap?) -> Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                takeScreenshot(
+                    Display.DEFAULT_DISPLAY,
+                    mainExecutor,
+                    object : TakeScreenshotCallback {
+                        override fun onSuccess(screenshotResult: ScreenshotResult) {
+                            try {
+                                val hardwareBuffer = screenshotResult.hardwareBuffer
+                                val colorSpace = screenshotResult.colorSpace
+                                val hwBitmap = Bitmap.wrapHardwareBuffer(hardwareBuffer, colorSpace)
+                                // Copy sang software bitmap để getPixel hoạt động trơn tru
+                                val softBitmap = hwBitmap?.copy(Bitmap.Config.ARGB_8888, false)
+                                hardwareBuffer.close()
+                                callback(softBitmap)
+                            } catch (e: Exception) {
+                                callback(null)
+                            }
+                        }
+
+                        override fun onFailure(errorCode: Int) {
+                            callback(null)
+                        }
+                    }
+                )
+            } catch (e: Exception) {
+                callback(null)
+            }
+        } else {
+            callback(null)
+        }
+    }
+
+    /**
+     * Hàm suspend chụp màn hình dành cho Coroutines
+     */
+    suspend fun captureScreenSuspend(): Bitmap? = suspendCancellableCoroutine { cont ->
+        takeScreenCapture { bmp ->
+            if (cont.isActive) {
+                cont.resume(bmp)
+            }
+        }
+    }
+
+    /**
      * Thực hiện thao tác vuốt tráo kẹo từ (startX, startY) đến (endX, endY)
      */
     fun performSwipe(
         startX: Float, startY: Float,
         endX: Float, endY: Float,
-        durationMs: Long = 180L,
+        durationMs: Long = 160L,
         onComplete: (() -> Unit)? = null
     ) {
         val swipePath = Path().apply {
