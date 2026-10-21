@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Candy Crush AutoBot</string>
+    <string name="accessibility_service_desc">Dịch vụ hỗ trợ tự động vuốt màn hình và giải kẹo thông minh cho Candy Crush Saga.</string>
+</resources>
