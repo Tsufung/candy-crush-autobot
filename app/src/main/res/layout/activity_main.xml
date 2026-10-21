@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#121218"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🍬 Candy Crush Auto Bot"
+        android:textColor="#FFFFFF"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Tối ưu cho Samsung Galaxy Note 10+"
+        android:textColor="#B0BEC5"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Card danh sách cấp quyền -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#1E1E2A"
+        android:padding="16dp"
+        android:layout_marginBottom="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CÁC QUYỀN CẦN THIẾT"
+            android:textColor="#FF9800"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Quyền 1: Overlay -->
+        <TextView
+            android:id="@+id/tvOverlayStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⚪ Quyền Nút Home Ảo"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:layout_marginBottom="4dp" />
+
+        <Button
+            android:id="@+id/btnGrantOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Cấp quyền Hiển thị trên ứng dụng khác"
+            android:backgroundTint="#3F51B5"
+            android:textColor="#FFFFFF"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Quyền 2: Accessibility -->
+        <TextView
+            android:id="@+id/tvAccessibilityStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⚪ Dịch vụ Trợ Năng"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:layout_marginBottom="4dp" />
+
+        <Button
+            android:id="@+id/btnGrantAccessibility"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Bật Dịch vụ Trợ Năng (Để tự vuốt kẹo)"
+            android:backgroundTint="#3F51B5"
+            android:textColor="#FFFFFF"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Quyền 3: MediaProjection -->
+        <TextView
+            android:id="@+id/tvCaptureStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⚪ Chụp màn hình để nhận diện"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnStartFloating"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="🚀 BẬT NÚT HOME ẢO NGAY"
+        android:backgroundTint="#E91E63"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Hướng dẫn nhanh -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="💡 HƯỚNG DẪN:\n1. Bấm nút Bật ở trên để hiện Nút Home ảo.\n2. Mở game Candy Crush Saga.\n3. Kéo nút đến vị trí bạn muốn, chạm 1 lần để TỰ ĐỘNG CHƠI.\n4. Chạm lại lần nữa để Tạm dừng bất kỳ lúc nào!"
+        android:textColor="#9E9E9E"
+        android:textSize="13sp"
+        android:lineSpacingExtra="4dp" />
+</LinearLayout>
