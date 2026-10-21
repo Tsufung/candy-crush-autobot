@@ -29,6 +29,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnGrantOverlay: Button
     private lateinit var btnGrantAccessibility: Button
     private lateinit var btnStartFloating: Button
+    private lateinit var btnStopFloating: Button
 
     private var screenCaptureIntentData: Intent? = null
     private var screenCaptureResultCode: Int = 0
@@ -53,6 +54,7 @@ class MainActivity : AppCompatActivity() {
         btnGrantOverlay = findViewById(R.id.btnGrantOverlay)
         btnGrantAccessibility = findViewById(R.id.btnGrantAccessibility)
         btnStartFloating = findViewById(R.id.btnStartFloating)
+        btnStopFloating = findViewById(R.id.btnStopFloating)
 
         btnGrantOverlay.setOnClickListener {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
@@ -75,6 +77,10 @@ class MainActivity : AppCompatActivity() {
         btnStartFloating.setOnClickListener {
             checkAndLaunchBot()
         }
+
+        btnStopFloating.setOnClickListener {
+            stopBotCompletely()
+        }
     }
 
     private fun updatePermissionStates() {
@@ -84,13 +90,15 @@ class MainActivity : AppCompatActivity() {
 
         val hasAccessibility = CandyAccessibilityService.isReady()
         val hasCapture = screenCaptureIntentData != null
+        val isBotRunning = FloatingHomeService.isServiceRunning
 
         tvOverlayStatus.text = if (hasOverlay) "✅ Đã cấp quyền Nút Home ảo" else "❌ Chưa cấp quyền Nút Home ảo"
         tvAccessibilityStatus.text = if (hasAccessibility) "✅ Đã bật Dịch vụ Trợ Năng" else "❌ Chưa bật Dịch vụ Trợ Năng"
-        tvCaptureStatus.text = if (hasCapture) "✅ Đã sẵn sàng chụp màn hình" else "⚪ Chưa khởi chạy chụp màn hình"
+        tvCaptureStatus.text = if (isBotRunning) "🟢 Bot đang hiển thị trên màn hình" else if (hasCapture) "✅ Đã sẵn sàng chụp màn hình" else "⚪ Chưa bật"
 
         btnGrantOverlay.isEnabled = !hasOverlay
         btnGrantAccessibility.isEnabled = !hasAccessibility
+        btnStopFloating.isEnabled = isBotRunning || hasCapture
     }
 
     private fun checkAndLaunchBot() {
@@ -149,5 +157,23 @@ class MainActivity : AppCompatActivity() {
         startMain.addCategory(Intent.CATEGORY_HOME)
         startMain.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         startActivity(startMain)
+    }
+
+    private fun stopBotCompletely() {
+        // Gửi lệnh tắt Floating Home Service
+        val stopFloat = Intent(this, FloatingHomeService::class.java).apply {
+            action = FloatingHomeService.ACTION_STOP_FLOATING
+        }
+        startService(stopFloat)
+
+        // Dừng ScreenCaptureService
+        val stopCap = Intent(this, ScreenCaptureService::class.java)
+        stopService(stopCap)
+
+        screenCaptureIntentData = null
+        screenCaptureResultCode = 0
+
+        Toast.makeText(this, "🛑 Đã tắt bot và đóng Nút Home ảo hoàn toàn!", Toast.LENGTH_SHORT).show()
+        updatePermissionStates()
     }
 }
