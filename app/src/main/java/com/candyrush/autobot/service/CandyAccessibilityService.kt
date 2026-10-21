@@ -121,4 +121,32 @@ class CandyAccessibilityService : AccessibilityService() {
             }
         }, null)
     }
+
+    /**
+     * Thực hiện thao tác chạm (Tap) vào tọa độ (x, y)
+     * Dùng để tự động kích hoạt Booster (Búa, Đĩa bay, Bàn tay) và đập Đầu Lâu (Sour Skull)
+     */
+    fun performTap(
+        x: Float, y: Float,
+        durationMs: Long = 80L,
+        onComplete: (() -> Unit)? = null
+    ) {
+        val tapPath = Path().apply {
+            moveTo(x, y)
+        }
+        val stroke = GestureDescription.StrokeDescription(tapPath, 0, durationMs)
+        val gesture = GestureDescription.Builder().addStroke(stroke).build()
+
+        dispatchGesture(gesture, object : GestureResultCallback() {
+            override fun onCompleted(gestureDescription: GestureDescription?) {
+                super.onCompleted(gestureDescription)
+                onComplete?.invoke()
+            }
+
+            override fun onCancelled(gestureDescription: GestureDescription?) {
+                super.onCancelled(gestureDescription)
+                onComplete?.invoke()
+            }
+        }, null)
+    }
 }
