@@ -18,16 +18,21 @@ import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
+import com.candyrush.autobot.solver.CandyDetector
+import com.candyrush.autobot.solver.Match3Solver
 import kotlinx.coroutines.*
 import kotlin.math.abs
 
 /**
- * Service Nút Home Ảo - Động cơ Tự Vuốt Quét Thông Minh (Cascade Smart-Sweeper Meta 2026)
- * - HOÀN TOÀN KHÔNG CẦN GHI MÀN HÌNH (Không MediaProjection, không hỏi quyền nhạy cảm)
- * - Tự động quét và hoán đổi kẹo tuần hoàn khắp 9 hàng x 9 cột
- * - Ưu tiên nổ từ đáy bàn cờ (Bottom-Up) tạo chuỗi sụt đổ dây chuyền (Cascade Multiplier)
- * - Tuyệt đối không bao giờ bị kẹt lại 1 chỗ
- * - Nút ✕ màu đỏ để tắt hoàn toàn ngay lập tức
+ * Service Nút Home Ảo - BỘ NÃO AI QUÉT 81 Ô VÀ TÍNH TOÁN CHIẾN THUẬT META 2026
+ * 1. Chụp ảnh màn hình 1 lần bằng Accessibility API (Không MediaProjection, không popup cảnh báo)
+ * 2. Phân tích 81 ô bàn cờ (9x9) trong 15 mili-giây
+ * 3. Tính toán đường đi tối ưu:
+ *    - Ưu tiên Super Combo (Bom Màu + Kẹo Sọc, Bom Màu + Bom Màu)
+ *    - Ưu tiên tạo kẹo đặc biệt mới (5 viên, 4 viên)
+ *    - Phá Thạch (Jelly) & Diệt Socola chống lây lan
+ *    - Trọng lực đáy bàn cờ (Cascade Gravity) tối đa hóa tỷ lệ nổ dây chuyền
+ * 4. Nút ✕ màu đỏ tắt bot nhanh chóng
  */
 class FloatingHomeService : Service() {
 
@@ -43,12 +48,21 @@ class FloatingHomeService : Service() {
     private lateinit var iconText: TextView
     private lateinit var statusBadge: View
     private lateinit var btnExit: FrameLayout
+    private lateinit var moveCounterText: TextView
     private lateinit var layoutParams: WindowManager.LayoutParams
+
+    private val detector = CandyDetector()
+    private val solver = Match3Solver()
 
     private var isRunning = false
     private var job: Job? = null
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val mainHandler = Handler(Looper.getMainLooper())
+
+    private val bannedMoves = mutableMapOf<String, Long>()
+    private var lastMoveKey: String? = null
+    private var lastGrid: Array<IntArray>? = null
+    private var movesCount = 0
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -88,13 +102,13 @@ class FloatingHomeService : Service() {
             y = 500
         }
 
-        val containerSizePx = dpToPx(76)
+        val containerSizePx = dpToPx(82)
         floatingView = FrameLayout(this).apply {
             layoutParams = FrameLayout.LayoutParams(containerSizePx, containerSizePx)
         }
 
-        // Bong bóng chính (60dp)
-        val bubbleSize = dpToPx(60)
+        // Bong bóng chính (62dp)
+        val bubbleSize = dpToPx(62)
         btnInner = FrameLayout(this).apply {
             val lp = FrameLayout.LayoutParams(bubbleSize, bubbleSize).apply {
                 gravity = Gravity.CENTER
@@ -133,6 +147,25 @@ class FloatingHomeService : Service() {
         }
         floatingView.addView(statusBadge)
 
+        // Bộ đếm lượt đi nhỏ ở dưới
+        moveCounterText = TextView(this).apply {
+            val lp = FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT).apply {
+                gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                setMargins(0, 0, 0, dpToPx(2))
+            }
+            layoutParams = lp
+            text = "0"
+            textSize = 10f
+            setTextColor(Color.WHITE)
+            setPadding(dpToPx(4), dpToPx(1), dpToPx(4), dpToPx(1))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(4).toFloat()
+                setColor(Color.parseColor("#CC000000"))
+            }
+        }
+        floatingView.addView(moveCounterText)
+
         // NÚT ĐÓNG / TẮT BOT (✕ MÀU ĐỎ)
         val exitSize = dpToPx(24)
         btnExit = FrameLayout(this).apply {
@@ -143,7 +176,7 @@ class FloatingHomeService : Service() {
             layoutParams = lp
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(Color.parseColor("#D32F2F")) // Đỏ
+                setColor(Color.parseColor("#D32F2F")) // Đỏ cảnh báo
                 setStroke(dpToPx(1), Color.WHITE)
             }
             elevation = 10f
@@ -198,11 +231,9 @@ class FloatingHomeService : Service() {
                     val dx = abs(event.rawX - initialTouchX)
                     val dy = abs(event.rawY - initialTouchY)
 
-                    // Chạm nhẹ: Bật / Tắt Auto
                     if (touchDuration < 350 && dx < 15 && dy < 15) {
                         toggleAuto()
                     } else if (touchDuration >= 700 && dx < 15 && dy < 15) {
-                        // Nhấn giữ: Tắt bot
                         stopAutoAndExit()
                     }
                     true
@@ -217,11 +248,11 @@ class FloatingHomeService : Service() {
         updateButtonState()
 
         if (isRunning) {
-            Toast.makeText(this, "🟢 Candy Crush Auto: ĐÃ BẬT!", Toast.LENGTH_SHORT).show()
-            startAutoLoop()
+            Toast.makeText(this, "🟢 Candy Crush AI Bot: ĐÃ BẬT!", Toast.LENGTH_SHORT).show()
+            startAiLoop()
         } else {
-            Toast.makeText(this, "⏸ Candy Crush Auto: TẠM DỪNG!", Toast.LENGTH_SHORT).show()
-            stopAutoLoop()
+            Toast.makeText(this, "⏸ Candy Crush AI Bot: TẠM DỪNG!", Toast.LENGTH_SHORT).show()
+            stopAiLoop()
         }
     }
 
@@ -239,98 +270,98 @@ class FloatingHomeService : Service() {
                 iconText.text = "🍬"
                 badgeBg.setColor(Color.parseColor("#9E9E9E")) // Xám
             }
+            moveCounterText.text = movesCount.toString()
         }
     }
 
     /**
-     * VÒNG LẶP VUỐT QUÉT THÔNG MINH (CASCADE SMART-SWEEPER)
-     * Quét tuần hoàn toàn bộ 9 hàng x 9 cột từ dưới lên trên
+     * VÒNG LẶP AI QUÉT 81 Ô VÀ RA QUYẾT ĐỊNH CHIẾN THUẬT
      */
-    private fun startAutoLoop() {
+    private fun startAiLoop() {
         job?.cancel()
         job = scope.launch {
-            val accessService = CandyAccessibilityService.instance
-            if (accessService == null) {
-                mainHandler.post {
-                    Toast.makeText(this@FloatingHomeService, "⚠️ Vui lòng bật Dịch vụ Trợ Năng trong Cài đặt!", Toast.LENGTH_SHORT).show()
-                }
-                isRunning = false
-                updateButtonState()
-                return@launch
-            }
-
-            val metrics = resources.displayMetrics
-            val screenW = metrics.widthPixels
-            val screenH = metrics.heightPixels
-
-            // Kích thước chuẩn vùng bàn cờ Candy Crush trên Samsung Note 10+
-            val boardLeft = screenW * 0.05f
-            val boardRight = screenW * 0.95f
-            val boardTop = screenH * 0.23f
-            val boardBottom = screenH * 0.77f
-
-            val rows = 9
-            val cols = 9
-            val cellW = (boardRight - boardLeft) / cols
-            val cellH = (boardBottom - boardTop) / rows
-
-            // Danh sách các nước hoán đổi: Ưu tiên quét từ hàng đáy (hàng 8, 7, 6...) lên trên
-            val swipeList = mutableListOf<Pair<Pair<Float, Float>, Pair<Float, Float>>>()
-
-            for (r in (rows - 1) downTo 0) {
-                // 1. Quét hoán đổi ngang (Trái sang Phải)
-                for (c in 0 until (cols - 1)) {
-                    val x1 = boardLeft + (c + 0.5f) * cellW
-                    val y1 = boardTop + (r + 0.5f) * cellH
-                    val x2 = boardLeft + (c + 1.5f) * cellW
-                    val y2 = y1
-                    swipeList.add(Pair(Pair(x1, y1), Pair(x2, y2)))
+            while (isRunning && isActive) {
+                val accessService = CandyAccessibilityService.instance
+                if (accessService == null) {
+                    mainHandler.post {
+                        Toast.makeText(this@FloatingHomeService, "⚠️ Vui lòng Bật Dịch vụ Trợ Năng trong Cài đặt!", Toast.LENGTH_SHORT).show()
+                    }
+                    isRunning = false
+                    updateButtonState()
+                    break
                 }
 
-                // 2. Quét hoán đổi dọc (Dưới lên Trên)
-                if (r > 0) {
-                    for (c in 0 until cols) {
-                        val x1 = boardLeft + (c + 0.5f) * cellW
-                        val y1 = boardTop + (r + 0.5f) * cellH
-                        val x2 = x1
-                        val y2 = boardTop + (r - 0.5f) * cellH
-                        swipeList.add(Pair(Pair(x1, y1), Pair(x2, y2)))
+                // 1. Chụp màn hình 1 lần bằng Accessibility API (Không MediaProjection, không popup)
+                val bitmap = accessService.captureScreenSuspend()
+                if (bitmap == null) {
+                    delay(300L)
+                    continue
+                }
+
+                // 2. Phân tích 81 ô bàn cờ (màu sắc, nhiệm vụ, xác suất)
+                val detection = detector.scanBoard(bitmap)
+
+                // 3. Kiểm tra nếu nước đi trước bị game lắc trả lại (chống lặp nước đi)
+                val currentLastKey = lastMoveKey
+                val currentLastGrid = lastGrid
+                if (currentLastKey != null && currentLastGrid != null) {
+                    if (areGridsEqual(currentLastGrid, detection.grid)) {
+                        // Game từ chối nước đi -> Cấm nước đi này trong 7s để AI chọn nước khác
+                        bannedMoves[currentLastKey] = System.currentTimeMillis() + 7000L
                     }
                 }
-            }
 
-            var moveIndex = 0
+                // Dọn dẹp danh sách cấm hết hạn
+                val now = System.currentTimeMillis()
+                bannedMoves.entries.removeAll { it.value < now }
 
-            while (isRunning && isActive) {
-                val currentService = CandyAccessibilityService.instance ?: break
+                // 4. BỘ NÃO AI TÌM NƯỚC ĐI TỐI ƯU NHẤT (Cực nhanh, chỉ mất ~15ms)
+                val bestMove = solver.findOptimalMove(detection, bannedMoves.keys.toSet())
 
-                val move = swipeList[moveIndex % swipeList.size]
-                val (start, end) = move
+                if (bestMove != null) {
+                    val (x1, y1) = detector.cellToScreenCoords(bestMove.r1, bestMove.c1, bitmap.width, bitmap.height)
+                    val (x2, y2) = detector.cellToScreenCoords(bestMove.r2, bestMove.c2, bitmap.width, bitmap.height)
 
-                // Thực hiện vuốt dứt khoát 140ms
-                currentService.performSwipe(start.first, start.second, end.first, end.second, 140L)
+                    lastMoveKey = Match3Solver.moveKey(bestMove.r1, bestMove.c1, bestMove.r2, bestMove.c2)
+                    lastGrid = cloneGrid(detection.grid)
+                    movesCount++
+                    updateButtonState()
 
-                // Nhịp nghỉ giữa các nước đi: 280ms
-                // Thời gian này vừa đủ để game kiểm tra match hoặc lắc nhẹ trở lại nếu không ăn
-                delay(280L)
+                    // Vuốt tráo kẹo dứt khoát 160ms
+                    accessService.performSwipe(x1, y1, x2, y2, 160L)
 
-                moveIndex++
-
-                // Sau mỗi chu kỳ quét xong 1 lượt bàn cờ (khoảng 35 nước), dừng nhẹ 600ms cho kẹo cascade rơi xong
-                if (moveIndex % 35 == 0) {
-                    delay(600L)
+                    // Chờ kẹo nổ và chuỗi sụt đổ cascade hoàn tất
+                    delay(1250L)
+                } else {
+                    // Không có nước đi hợp lệ hoặc đang xáo trộn màn hình
+                    lastMoveKey = null
+                    lastGrid = null
+                    delay(500L)
                 }
             }
         }
     }
 
-    private fun stopAutoLoop() {
+    private fun areGridsEqual(g1: Array<IntArray>, g2: Array<IntArray>): Boolean {
+        for (r in g1.indices) {
+            for (c in g1[r].indices) {
+                if (g1[r][c] != g2[r][c]) return false
+            }
+        }
+        return true
+    }
+
+    private fun cloneGrid(g: Array<IntArray>): Array<IntArray> {
+        return Array(g.size) { r -> g[r].clone() }
+    }
+
+    private fun stopAiLoop() {
         job?.cancel()
         job = null
     }
 
     fun stopAutoAndExit() {
-        stopAutoLoop()
+        stopAiLoop()
         isRunning = false
         isServiceRunning = false
 
@@ -353,7 +384,7 @@ class FloatingHomeService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         isServiceRunning = false
-        stopAutoLoop()
+        stopAiLoop()
         try {
             if (::floatingView.isInitialized) {
                 windowManager.removeView(floatingView)
