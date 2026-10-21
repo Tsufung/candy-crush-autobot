@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Nền tròn màu hồng kẹo neon -->
+    <path
+        android:fillColor="#E91E63"
+        android:pathData="M54,4 C26.39,4 4,26.39 4,54 C4,81.61 26.39,104 54,104 C81.61,104 104,81.61 104,54 C104,26.39 81.61,4 54,4 Z" />
+    <!-- Vòng tròn kẹo bọc trắng -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,20 C35.22,20 20,35.22 20,54 C20,72.78 35.22,88 54,88 C72.78,88 88,72.78 88,54 C88,35.22 72.78,20 54,20 Z" />
+    <!-- Nhân kẹo sọc cam vàng -->
+    <path
+        android:fillColor="#FF9800"
+        android:pathData="M54,32 C41.85,32 32,41.85 32,54 C32,66.15 41.85,76 54,76 C66.15,76 76,66.15 76,54 C76,41.85 66.15,32 54,32 Z" />
+    <!-- Chấm lấp lánh sao -->
+    <path
+        android:fillColor="#FFEB3B"
+        android:pathData="M54,42 C47.37,42 42,47.37 42,54 C42,60.63 47.37,66 54,66 C60.63,66 66,60.63 66,54 C66,47.37 60.63,42 54,42 Z" />
+</vector>
