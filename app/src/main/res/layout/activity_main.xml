@@ -20,7 +20,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Tối ưu cho Samsung Galaxy Note 10+"
+        android:text="Tối ưu cho Samsung Galaxy Note 10+ (Không cần ghi màn hình)"
         android:textColor="#B0BEC5"
         android:textSize="14sp"
         android:gravity="center"
@@ -38,7 +38,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="CÁC QUYỀN CẦN THIẾT"
+            android:text="CÁC QUYỀN CẦN THIẾT (CHỈ 2 QUYỀN)"
             android:textColor="#FF9800"
             android:textSize="13sp"
             android:textStyle="bold"
@@ -58,7 +58,7 @@
             android:id="@+id/btnGrantOverlay"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Cấp quyền Hiển thị trên ứng dụng khác"
+            android:text="1. Cấp quyền Hiển thị Nút Home ảo"
             android:backgroundTint="#3F51B5"
             android:textColor="#FFFFFF"
             android:layout_marginBottom="16dp" />
@@ -77,19 +77,9 @@
             android:id="@+id/btnGrantAccessibility"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Bật Dịch vụ Trợ Năng (Để tự vuốt kẹo)"
+            android:text="2. Bật Dịch vụ Trợ Năng (Để tự vuốt kẹo)"
             android:backgroundTint="#3F51B5"
-            android:textColor="#FFFFFF"
-            android:layout_marginBottom="16dp" />
-
-        <!-- Quyền 3: MediaProjection -->
-        <TextView
-            android:id="@+id/tvCaptureStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="⚪ Chụp màn hình để nhận diện"
-            android:textColor="#FFFFFF"
-            android:textSize="15sp" />
+            android:textColor="#FFFFFF" />
     </LinearLayout>
 
     <Button
@@ -118,7 +108,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="💡 HƯỚNG DẪN:\n1. Bấm nút Bật ở trên để hiện Nút Home ảo.\n2. Mở game Candy Crush Saga.\n3. Kéo nút đến vị trí bạn muốn, chạm 1 lần để TỰ ĐỘNG CHƠI.\n4. Chạm lại lần nữa để Tạm dừng bất kỳ lúc nào!"
+        android:text="💡 HƯỚNG DẪN:\n1. Bấm nút Bật ở trên để hiện Nút Home ảo (🍬).\n2. Mở game Candy Crush Saga.\n3. Chạm vào nút 🍬: Bot tự động vuốt quét liên tục toàn bộ bàn cờ.\n4. Chạm lại lần nữa để Tạm dừng.\n5. Bấm nút đỏ ✕ ở góc nút ảo để TẮT HOÀN TOÀN!"
         android:textColor="#9E9E9E"
         android:textSize="13sp"
         android:lineSpacingExtra="4dp" />
