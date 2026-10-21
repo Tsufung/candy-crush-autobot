@@ -13,6 +13,15 @@ import kotlin.math.abs
  */
 class CandyDetector {
 
+    companion object {
+        const val BOOSTER_HAND_X = 0.2742f
+        const val BOOSTER_UFO_X = 0.4227f
+        const val BOOSTER_HAMMER_X = 0.5711f
+        const val BOOSTER_PARTY_X = 0.7216f
+        const val BOOSTER_BRUSH_X = 0.8722f
+        const val BOOSTER_Y = 0.9375f
+    }
+
     data class BoardConfig(
         val topRatio: Float = 0.270f,    // Mép trên hàng 0 (ngay dưới máy nhả kẹo dispenser)
         val bottomRatio: Float = 0.728f, // Mép dưới hàng 8 (ngay trên hàng lửa & boosters)
@@ -238,5 +247,20 @@ class CandyDetector {
         val x = board.left + (col + 0.5f) * cellW
         val y = board.top + (row + 0.5f) * cellH
         return Pair(x, y)
+    }
+
+    /**
+     * Tọa độ pixel màn hình của thanh công cụ Boosters ở đáy màn hình
+     */
+    fun getBoosterScreenCoords(boosterType: String, screenWidth: Int, screenHeight: Int): Pair<Float, Float> {
+        val xRatio = when (boosterType) {
+            "HAND" -> BOOSTER_HAND_X
+            "UFO" -> BOOSTER_UFO_X
+            "HAMMER" -> BOOSTER_HAMMER_X
+            "PARTY" -> BOOSTER_PARTY_X
+            "BRUSH" -> BOOSTER_BRUSH_X
+            else -> BOOSTER_HAMMER_X
+        }
+        return Pair(screenWidth * xRatio, screenHeight * BOOSTER_Y)
     }
 }
