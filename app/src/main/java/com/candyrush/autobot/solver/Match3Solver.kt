@@ -42,7 +42,8 @@ class Match3Solver {
         }
 
         fun isSwappable(value: Int): Boolean {
-            return value in arrayOf(RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, COLOR_BOMB, STRIPED, WRAPPED, FISH)
+            // LOẠI BỎ KẸO CÁ KHỎI KẸO THƯỜNG: Kẹo cá không thể đổi chỗ với kẹo thường nếu không tạo match-3
+            return value in arrayOf(RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, COLOR_BOMB, STRIPED, WRAPPED)
         }
 
         /**
@@ -65,6 +66,13 @@ class Match3Solver {
         val r2: Int, val c2: Int,
         val score: Int,
         val reason: String = ""
+    )
+
+    data class BoosterRecommendation(
+        val boosterType: String, // "HAMMER", "UFO", "HAND"
+        val targetRow: Int,
+        val targetCol: Int,
+        val reason: String
     )
 
     data class MatchGroup(
