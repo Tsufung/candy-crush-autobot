@@ -8,6 +8,7 @@
     
     <!-- Quyền chạy tiến trình nền Foreground Service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
     <!-- Không ngủ khi đang auto -->
@@ -36,6 +37,13 @@
             android:name=".service.FloatingHomeService"
             android:enabled="true"
             android:exported="false" />
+
+        <!-- Service Chụp Màn Hình MediaProjection -->
+        <service
+            android:name=".service.ScreenCaptureService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
 
         <!-- Dịch vụ Trợ Năng Accessibility Service -->
         <service
