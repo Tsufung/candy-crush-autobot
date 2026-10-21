@@ -101,6 +101,17 @@
         android:textColor="#FFFFFF"
         android:textSize="16sp"
         android:textStyle="bold"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btnStopFloating"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:text="🛑 TẮT BOT &amp; ĐÓNG NÚT HOME ẢO"
+        android:backgroundTint="#D32F2F"
+        android:textColor="#FFFFFF"
+        android:textSize="15sp"
+        android:textStyle="bold"
         android:layout_marginBottom="24dp" />
 
     <!-- Hướng dẫn nhanh -->
