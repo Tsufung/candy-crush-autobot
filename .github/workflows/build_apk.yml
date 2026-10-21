@@ -5,7 +5,7 @@ on:
     branches: [ "**" ]
   pull_request:
     branches: [ "**" ]
-  workflow_dispatch: # Cho phép nhấn nút "Run workflow" thủ công trên web GitHub
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -26,36 +26,21 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
       - name: Build Android APK
         run: |
-          echo "=== KIỂM TRA THƯ MỤC DỰ ÁN ==="
-          if [ -d "android_native_app" ]; then
-            echo "Phát hiện thư mục con android_native_app, chuyển vào thư mục này..."
-            cd android_native_app
-          fi
-          
-          # Đảm bảo gradle wrapper hoàn chỉnh
-          gradle wrapper --gradle-version 8.5 || true
-          chmod +x ./gradlew || true
-          
-          echo "=== TIẾN HÀNH BIÊN DỊCH FILE APK ==="
-          if [ -f "./gradlew" ]; then
-            ./gradlew assembleDebug --stacktrace
-          else
-            gradle assembleDebug --stacktrace
-          fi
+          echo "=== TẠO GRADLE WRAPPER VÀ BIÊN DỊCH APK ==="
+          gradle wrapper --gradle-version 8.5
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --stacktrace
 
       - name: Collect and Rename APK
         run: |
           mkdir -p apk_output
-          find . -name "*.apk" -type f -exec cp {} apk_output/CandyCrush_AutoBot.apk \;
-          echo "Danh sách file APK đã xuất:"
+          find app/build/outputs/apk/debug -name "*.apk" -type f -exec cp {} apk_output/CandyCrush_AutoBot.apk \;
+          echo "File APK đã được tạo thành công:"
           ls -lh apk_output/
 
       - name: Upload APK to GitHub Artifacts
@@ -67,14 +52,14 @@ jobs:
 
       - name: Create GitHub Release with APK
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
         with:
           tag_name: release-v1.0.${{ github.run_number }}
           name: "Candy Crush AutoBot APK (v1.0.${{ github.run_number }})"
           body: |
             🍬 **CANDY CRUSH SAGABOT - BẢN APK CÀI ĐẶT TRỰC TIẾP TRÊN ĐIỆN THOẠI**
             
-            - Tối ưu đặc biệt cho Samsung Galaxy Note 10+ và các máy Android.
+            - Tối ưu cho Samsung Galaxy Note 10+ và các máy Android.
             - Nút Home ảo (Floating AssistiveTouch) tròn trên màn hình game.
             - Chạm 1 lần để TỰ ĐỘNG CHƠI (Tự tìm combo Color Bomb, Striped Candy, cascade).
             - Chạm lại để Tạm dừng bất kỳ lúc nào.
