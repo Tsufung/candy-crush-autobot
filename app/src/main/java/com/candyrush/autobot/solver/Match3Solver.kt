@@ -1,10 +1,12 @@
 package com.candyrush.autobot.solver
 
+import kotlin.math.abs
+
 /**
- * BỘ NÃO AI CHIẾN THUẬT MATCH-3 CHO CANDY CRUSH SAGA (META 2026 EDITION)
- * - Đánh giá toàn diện 81 ô bàn cờ
- * - Tính toán xác suất rơi kẹo theo màu và phân bổ trọng lực (Gravity Cascade)
- * - Tối ưu hóa nhiệm vụ từng màn: Diệt socola, Phá thạch (Jelly), Hạ nguyên liệu
+ * BỘ NÃO AI CHIẾN THUẬT MATCH-3 CHO CANDY CRUSH SAGA (META 2026 KING EDITION)
+ * - Tối ưu hóa tiêu diệt Đầu Lâu (Sour Skull) để đoạt Chìa khóa & giải phóng kẹo vàng/xanh
+ * - Phá Bánh Quế (Waffles) & Băng Tuyết (Ice) hoàn thành mục tiêu màn chơi
+ * - Nhận diện Rào chắn Dây Xích (Licorice Ropes) ngăn chặn vuốt ngang sai luật
  * - Ưu tiên tuyệt đối các Super Combo (Bom Màu + Kẹo Sọc, Bom Màu + Bom Màu)
  */
 class Match3Solver {
@@ -24,11 +26,37 @@ class Match3Solver {
         const val WRAPPED = 12
         const val CHOCOLATE = 20
 
+        // Chướng ngại vật cao cấp King
+        const val SKULL = 30     // Đầu lâu Sour Skull (cần gõ 5 lần để ra chìa khóa)
+        const val CHEST = 31     // Ổ khóa Sugar Chest
+        const val WAFFLE = 32    // Bánh quế Waffle
+        const val ICE = 33       // Băng tuyết Frosting
+        const val FISH = 34      // Kẹo cá
+        const val PEDESTAL = 35 // Bệ đỡ pha lê cố định
+
         const val ROWS = 9
         const val COLS = 9
 
         fun moveKey(r1: Int, c1: Int, r2: Int, c2: Int): String {
             return if (r1 < r2 || (r1 == r2 && c1 <= c2)) "$r1,$c1-$r2,$c2" else "$r2,$c2-$r1,$c1"
+        }
+
+        fun isSwappable(value: Int): Boolean {
+            return value in arrayOf(RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE, COLOR_BOMB, STRIPED, WRAPPED, FISH)
+        }
+
+        /**
+         * Kiểm tra rào chắn Dây Xích (Licorice Ropes) thẳng đứng giữa các cột
+         * Không cho phép tráo kẹo theo phương ngang xuyên qua dây xích!
+         */
+        fun isBlockedByRope(row: Int, c1: Int, c2: Int): Boolean {
+            val minC = minOf(c1, c2)
+            val maxC = maxOf(c1, c2)
+            if (minC == 1 && maxC == 2 && row in 5..7) return true
+            if (minC == 3 && maxC == 4 && row in 5..7) return true
+            if (minC == 5 && maxC == 6 && row in 3..7) return true
+            if (minC == 7 && maxC == 8 && row in 3..7) return true
+            return false
         }
     }
 
@@ -65,7 +93,7 @@ class Match3Solver {
         for (r in 0 until ROWS) {
             for (c in 0 until COLS) {
                 val c1 = grid[r][c]
-                if (c1 == EMPTY) continue
+                if (!isSwappable(c1)) continue
 
                 for (dir in directions) {
                     val nr = r + dir.first
@@ -73,7 +101,11 @@ class Match3Solver {
 
                     if (nr in 0 until ROWS && nc in 0 until COLS) {
                         val c2 = grid[nr][nc]
-                        if (c2 == EMPTY || c1 == c2) continue
+                        if (!isSwappable(c2)) continue
+                        if (c1 == c2 && c1 !in arrayOf(COLOR_BOMB, STRIPED, WRAPPED, FISH)) continue
+
+                        // Chặn tráo ngang xuyên qua Rào Chắn Dây Xích
+                        if (dir.second != 0 && isBlockedByRope(r, c, nc)) continue
 
                         val key = moveKey(r, c, nr, nc)
                         if (bannedMoves.contains(key)) continue
@@ -106,7 +138,58 @@ class Match3Solver {
                         var score = matchedCoords.size * 150
                         var moveReason = "Ăn kẹo cơ bản"
 
-                        // THƯỞNG TẠO KẸO ĐẶC BIỆT MỚI
+                        // ========================================================
+                        // 3. CHIẾN LƯỢC TẤN CÔNG ĐẦU LÂU (SOUR SKULL - KING MECHANIC)
+                        // ========================================================
+                        val skullPos = detection.skullCoords
+                        if (skullPos != null) {
+                            var hitsSkull = false
+                            for (coord in matchedCoords) {
+                                if (abs(coord.first - skullPos.first) <= 1 && abs(coord.second - skullPos.second) <= 1) {
+                                    hitsSkull = true
+                                    break
+                                }
+                            }
+                            if (hitsSkull) {
+                                score += 25000
+                                moveReason = "💀 TẤN CÔNG ĐẦU LÂU (SOUR SKULL) -> LẤY CHÌA KHÓA"
+                            }
+                        }
+
+                        // ========================================================
+                        // 4. PHÁ BÁNH QUẾ (WAFFLES) & BĂNG TUYẾT (ICE) NHIỆM VỤ
+                        // ========================================================
+                        var wafflesHit = 0
+                        var iceHit = 0
+                        for (coord in matchedCoords) {
+                            val neighbors = arrayOf(
+                                Pair(coord.first - 1, coord.second),
+                                Pair(coord.first + 1, coord.second),
+                                Pair(coord.first, coord.second - 1),
+                                Pair(coord.first, coord.second + 1)
+                            )
+                            for (n in neighbors) {
+                                if (n.first in 0 until ROWS && n.second in 0 until COLS) {
+                                    when (grid[n.first][n.second]) {
+                                        WAFFLE -> wafflesHit++
+                                        ICE -> iceHit++
+                                    }
+                                }
+                            }
+                        }
+                        if (wafflesHit > 0) {
+                            score += wafflesHit * 5000
+                            if (!moveReason.contains("ĐẦU LÂU")) {
+                                moveReason = "🧇 PHÁ BÁNH QUẾ NHIỆM VỤ ($wafflesHit ô)"
+                            }
+                        }
+                        if (iceHit > 0) {
+                            score += iceHit * 4000
+                        }
+
+                        // ========================================================
+                        // 5. THƯỞNG TẠO KẸO ĐẶC BIỆT MỚI
+                        // ========================================================
                         for (m in matches) {
                             when {
                                 m.length >= 5 -> {
@@ -115,16 +198,16 @@ class Match3Solver {
                                 }
                                 m.length == 4 -> {
                                     score += 6000
-                                    moveReason = "⚡ TẠO KẸO SỌC 4 VIÊN"
+                                    if (!moveReason.contains("ĐẦU LÂU")) {
+                                        moveReason = "⚡ TẠO KẸO SỌC 4 VIÊN"
+                                    }
                                 }
                             }
                         }
 
                         // ========================================================
-                        // 3. CHIẾN THUẬT NHIỆM VỤ TỪNG MÀN CHƠI
+                        // 6. TIÊU DIỆT SOCOLA (CHOCOLATE DEFENSE)
                         // ========================================================
-                        // A. Tiêu diệt Socola (Chocolate Defense):
-                        // Nếu không ăn trúng socola, nó sẽ sinh sôi nuốt kẹo -> Ưu tiên diệt ngay!
                         if (detection.hasChocolate) {
                             var hitsChocolate = false
                             for (coord in matchedCoords) {
@@ -139,23 +222,9 @@ class Match3Solver {
                             }
                         }
 
-                        // B. Phá Thạch (Jelly Clearing):
-                        var jellyClearedCount = 0
-                        for (coord in matchedCoords) {
-                            if (detection.isJelly[coord.first][coord.second]) {
-                                jellyClearedCount++
-                            }
-                        }
-                        if (jellyClearedCount > 0) {
-                            score += jellyClearedCount * 4500
-                            moveReason = "🎯 PHÁ THẠCH NHIỆM VỤ ($jellyClearedCount ô)"
-                        }
-
                         // ========================================================
-                        // 4. TRỌNG LỰC CASCADE & XÁC SUẤT RƠI KẸO LIÊN HOÀN
+                        // 7. TRỌNG LỰC CASCADE & XÁC SUẤT RƠI KẸO LIÊN HOÀN
                         // ========================================================
-                        // Nổ ở đáy bàn cờ (hàng 8, 7, 6...) khiến toàn bộ các hàng phía trên rơi xuống,
-                        // tạo xác suất cực cao xuất hiện chuỗi nổ rơi tự do (Cascade chain reaction)
                         val bottomRow = maxOf(r, nr)
                         score += (bottomRow * 350)
 
@@ -172,89 +241,83 @@ class Match3Solver {
     }
 
     private fun evaluateSuperCombos(c1: Int, c2: Int, colorCounts: Map<Int, Int>): Pair<Int, String> {
-        // Bom Màu + Bom Màu: 100% bàn cờ bị xóa sổ
         if (c1 == COLOR_BOMB && c2 == COLOR_BOMB) {
-            return Pair(100000, "💣💣 BOM MÀU ĐÔI: QUÉT SẠCH 100% BÀN CỜ!")
+            return Pair(100000, "💥💥 SIÊU COMBO: 2 BOM MÀU QUÉT TOÀN BÀN CỜ!")
         }
-        // Bom Màu + Kẹo Sọc: Biến toàn bộ kẹo cùng màu thành kẹo sọc và nổ đồng loạt
-        if ((c1 == COLOR_BOMB && c2 == STRIPED) || (c2 == COLOR_BOMB && c1 == STRIPED)) {
-            return Pair(80000, "💣⚡ BOM MÀU + KẸO SỌC: CÀN QUÉT MÀN HÌNH!")
+
+        if ((c1 == COLOR_BOMB && c2 == STRIPED) || (c1 == STRIPED && c2 == COLOR_BOMB)) {
+            return Pair(80000, "⚡⚡ SIÊU COMBO: BOM MÀU + KẸO SỌC NỔ DÂY CHUYỀN!")
         }
-        // Bom Màu + Kẹo Bọc
-        if ((c1 == COLOR_BOMB && c2 == WRAPPED) || (c2 == COLOR_BOMB && c1 == WRAPPED)) {
-            return Pair(65000, "💣💥 BOM MÀU + KẸO BỌC: VỤ NỔ KÉP!")
+
+        if ((c1 == COLOR_BOMB && c2 == WRAPPED) || (c1 == WRAPPED && c2 == COLOR_BOMB)) {
+            return Pair(75000, "💣💣 SIÊU COMBO: BOM MÀU + KẸO BỌC NỔ KÉP!")
         }
-        // Kẹo Sọc + Kẹo Bọc: Nổ chữ thập khổng lồ 3x3
-        if ((c1 == STRIPED && c2 == WRAPPED) || (c2 == STRIPED && c1 == WRAPPED)) {
-            return Pair(50000, "⚡💥 SỌC + BỌC: VỤ NỔ CHỮ THẬP KHỔNG LỒ!")
+
+        if ((c1 == STRIPED && c2 == WRAPPED) || (c1 == WRAPPED && c2 == STRIPED)) {
+            return Pair(50000, "⚡💣 COMBO: SỌC + BỌC (Xóa 3 hàng x 3 cột)!")
         }
-        // Kẹo Bọc + Kẹo Bọc: Vụ nổ 5x5 cực đại
-        if (c1 == WRAPPED && c2 == WRAPPED) {
-            return Pair(45000, "💥💥 BỌC + BỌC: VỤ NỔ 5X5!")
-        }
-        // Kẹo Sọc + Kẹo Sọc: Nổ 1 hàng ngang và 1 hàng dọc
+
         if (c1 == STRIPED && c2 == STRIPED) {
-            return Pair(35000, "⚡⚡ SỌC + SỌC: NỔ THẬP NGANG DỌC!")
+            return Pair(40000, "⚡⚡ COMBO: 2 KẸO SỌC (Nổ Chữ Thập)!")
         }
-        // Bom Màu + Kẹo thường: Chọn màu xuất hiện nhiều nhất trên bàn cờ để kích nổ tối đa
+
+        // Bom màu + Kẹo thường: Nổ màu có số lượng nhiều nhất trên bàn cờ
         if (c1 == COLOR_BOMB || c2 == COLOR_BOMB) {
             val normalCandy = if (c1 == COLOR_BOMB) c2 else c1
             val count = colorCounts[normalCandy] ?: 0
-            val score = 25000 + (count * 900)
-            return Pair(score, "💣 BOM MÀU: Kích nổ màu phổ biến ($count viên)")
+            val score = 30000 + (count * 2000)
+            return Pair(score, "🌈 BOM MÀU: Quét sạch $count viên kẹo cùng màu!")
         }
 
         return Pair(0, "")
     }
 
-    private fun isAdjacentToChocolate(r: Int, c: Int, grid: Array<IntArray>): Boolean {
-        val neighbors = arrayOf(Pair(r - 1, c), Pair(r + 1, c), Pair(r, c - 1), Pair(r, c + 1))
-        for (n in neighbors) {
-            if (n.first in 0 until ROWS && n.second in 0 until COLS) {
-                if (grid[n.first][n.second] == CHOCOLATE) return true
-            }
-        }
-        return false
-    }
-
-    private fun evaluateMatches(grid: Array<IntArray>): Pair<List<MatchGroup>, Set<Pair<Int, Int>>> {
+    private fun evaluateMatches(g: Array<IntArray>): Pair<List<MatchGroup>, Set<Pair<Int, Int>>> {
         val matches = mutableListOf<MatchGroup>()
         val matchedCoords = mutableSetOf<Pair<Int, Int>>()
 
-        // Quét hàng ngang
+        // Quét theo hàng ngang (Horizontal)
         for (r in 0 until ROWS) {
-            var matchLen = 1
-            for (c in 0 until COLS) {
-                val isSame = (c < COLS - 1 && grid[r][c] != EMPTY && grid[r][c] == grid[r][c + 1])
-                if (isSame) {
-                    matchLen++
-                } else {
+            var c = 0
+            while (c < COLS) {
+                val color = g[r][c]
+                if (color in RED..PURPLE) {
+                    var matchLen = 1
+                    while (c + matchLen < COLS && g[r][c + matchLen] == color) {
+                        matchLen++
+                    }
                     if (matchLen >= 3) {
-                        matches.add(MatchGroup(true, matchLen, r, c - matchLen + 1))
-                        for (k in (c - matchLen + 1)..c) {
-                            matchedCoords.add(Pair(r, k))
+                        matches.add(MatchGroup(true, matchLen, r, c))
+                        for (i in 0 until matchLen) {
+                            matchedCoords.add(Pair(r, c + i))
                         }
                     }
-                    matchLen = 1
+                    c += matchLen
+                } else {
+                    c++
                 }
             }
         }
 
-        // Quét hàng dọc
+        // Quét theo hàng dọc (Vertical)
         for (c in 0 until COLS) {
-            var matchLen = 1
-            for (r in 0 until ROWS) {
-                val isSame = (r < ROWS - 1 && grid[r][c] != EMPTY && grid[r][c] == grid[r + 1][c])
-                if (isSame) {
-                    matchLen++
-                } else {
+            var r = 0
+            while (r < ROWS) {
+                val color = g[r][c]
+                if (color in RED..PURPLE) {
+                    var matchLen = 1
+                    while (r + matchLen < ROWS && g[r + matchLen][c] == color) {
+                        matchLen++
+                    }
                     if (matchLen >= 3) {
-                        matches.add(MatchGroup(false, matchLen, r - matchLen + 1, c))
-                        for (k in (r - matchLen + 1)..r) {
-                            matchedCoords.add(Pair(k, c))
+                        matches.add(MatchGroup(false, matchLen, r, c))
+                        for (i in 0 until matchLen) {
+                            matchedCoords.add(Pair(r + i, c))
                         }
                     }
-                    matchLen = 1
+                    r += matchLen
+                } else {
+                    r++
                 }
             }
         }
@@ -262,7 +325,20 @@ class Match3Solver {
         return Pair(matches, matchedCoords)
     }
 
-    private fun cloneGrid(grid: Array<IntArray>): Array<IntArray> {
-        return Array(grid.size) { r -> grid[r].clone() }
+    private fun isAdjacentToChocolate(r: Int, c: Int, g: Array<IntArray>): Boolean {
+        val neighbors = arrayOf(
+            Pair(r - 1, c), Pair(r + 1, c),
+            Pair(r, c - 1), Pair(r, c + 1)
+        )
+        for (n in neighbors) {
+            if (n.first in 0 until ROWS && n.second in 0 until COLS) {
+                if (g[n.first][n.second] == CHOCOLATE) return true
+            }
+        }
+        return false
+    }
+
+    private fun cloneGrid(src: Array<IntArray>): Array<IntArray> {
+        return Array(ROWS) { r -> src[r].clone() }
     }
 }
