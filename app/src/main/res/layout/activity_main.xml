@@ -24,7 +24,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Bản v1.0.4 - King AI Engine (Cập nhật trực tiếp)"
+            android:text="Bản v1.0.5 - Smart Booster 999 &amp; King AI (Cập nhật trực tiếp)"
             android:textColor="#4CAF50"
             android:textSize="14sp"
             android:textStyle="bold"
