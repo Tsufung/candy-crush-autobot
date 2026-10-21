@@ -194,7 +194,7 @@ class FloatingHomeService : Service() {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(Color.parseColor("#FF9800")) // Cam rực rỡ
-                setStroke(dpToPx(1.5f), Color.WHITE)
+                setStroke(dpToPx(1), Color.WHITE)
             }
             val t = TextView(this@FloatingHomeService).apply {
                 text = "🔨"
@@ -215,7 +215,7 @@ class FloatingHomeService : Service() {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(Color.parseColor("#9C27B0")) // Tím
-                setStroke(dpToPx(1.5f), Color.WHITE)
+                setStroke(dpToPx(1), Color.WHITE)
             }
             val t = TextView(this@FloatingHomeService).apply {
                 text = "🛸"
