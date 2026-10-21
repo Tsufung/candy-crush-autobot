@@ -291,8 +291,10 @@ class FloatingHomeService : Service() {
                     break
                 }
 
-                // 1. Chụp màn hình 1 lần bằng Accessibility API (Không MediaProjection, không popup)
-                val bitmap = accessService.captureScreenSuspend()
+                // 1. Chụp màn hình: Ưu tiên MediaProjection HD nếu đã bật, nếu chưa bật thì dùng Accessibility ngầm
+                val bitmap = ScreenCaptureService.instance?.captureCurrentBitmap()
+                    ?: accessService.captureScreenSuspend()
+
                 if (bitmap == null) {
                     delay(300L)
                     continue
