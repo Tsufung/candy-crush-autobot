@@ -155,9 +155,9 @@ class FloatingHomeService : Service() {
             y = 450
         }
 
-        // Khung chứa toàn bộ (160dp x 90dp)
+        // Khung chứa toàn bộ (160dp x 118dp)
         val containerWPx = dpToPx(160)
-        val containerHPx = dpToPx(90)
+        val containerHPx = dpToPx(118)
         floatingView = FrameLayout(this).apply {
             layoutParams = FrameLayout.LayoutParams(containerWPx, containerHPx)
         }
@@ -302,6 +302,35 @@ class FloatingHomeService : Service() {
         badgeParty = pBadge
         row2.addView(btnPartyQuick)
         boosterGrid.addView(row2)
+
+        val row3 = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        val rerollBtn = FrameLayout(this).apply {
+            val lp = LinearLayout.LayoutParams(dpToPx(76), dpToPx(24)).apply {
+                setMargins(dpToPx(2), dpToPx(3), dpToPx(2), 0)
+            }
+            layoutParams = lp
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(12).toFloat()
+                setColor(Color.parseColor("#4CAF50"))
+                setStroke(dpToPx(1), Color.WHITE)
+            }
+            val tv = TextView(this@FloatingHomeService).apply {
+                text = "🔄 Reroll"
+                textSize = 10f
+                gravity = Gravity.CENTER
+                setTextColor(Color.WHITE)
+            }
+            addView(tv)
+            setOnClickListener {
+                triggerReroll()
+            }
+        }
+        row3.addView(rerollBtn)
+        boosterGrid.addView(row3)
 
         mainRow.addView(boosterGrid)
         floatingView.addView(mainRow)
@@ -513,20 +542,24 @@ class FloatingHomeService : Service() {
 
                     // Vuốt tráo kẹo 160ms
                     accessService.performSwipe(x1, y1, x2, y2, 160L)
-                    delay(1250L)
+                    delay(2300L) // Chờ 2.3 giây để hiệu ứng nổ và kẹo rơi ổn định 100%
                 } else {
-                    // KẸT BÀN CỜ / KHÔNG CÒN NƯỚC ĂN: TỰ ĐỘNG BẬT BOOSTER PHÁ THẾ KẸT!
+                    // KẸT BÀN CỜ / KHÔNG CÒN NƯỚC ĂN: TỰ ĐỘNG BẬT CASCADE HOẶC BOOSTER
                     lastMoveKey = null
                     lastGrid = null
 
                     if (detection.skullCoords != null) {
                         mainHandler.post {
-                            Toast.makeText(this@FloatingHomeService, "🔨 Bàn cờ kẹt! Tự động gõ Búa vào Đầu Lâu!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@FloatingHomeService, "🔨 Tự động gõ Búa vào Đầu Lâu để nổ map!", Toast.LENGTH_SHORT).show()
                         }
                         triggerAutoHammerOnSkullOrStuck(1)
                         delay(1200L)
                     } else {
-                        delay(600L)
+                        // Kích hoạt Cascade ở hàng đáy để xáo trộn kẹo
+                        val (bx1, by1) = detector.cellToScreenCoords(8, 3, bitmap.width, bitmap.height)
+                        val (bx2, by2) = detector.cellToScreenCoords(8, 4, bitmap.width, bitmap.height)
+                        accessService.performSwipe(bx1, by1, bx2, by2, 160L)
+                        delay(2000L)
                     }
                 }
             }
@@ -619,6 +652,41 @@ class FloatingHomeService : Service() {
             }
             accessService.performTap(partyX, partyY, 80L)
             delay(1500L)
+        }
+    }
+
+    /**
+     * TỰ ĐỘNG ĐỔI THẾ CỜ (REROLL) KHÔNG MẤT TIM / CHUỖI THẮNG
+     */
+    fun triggerReroll() {
+        val accessService = CandyAccessibilityService.instance ?: return
+        val metrics = resources.displayMetrics
+        val screenW = metrics.widthPixels
+        val screenH = metrics.heightPixels
+
+        val gearX = screenW * 0.082f
+        val gearY = screenH * 0.945f
+        val exitX = screenW * 0.50f
+        val exitY = screenH * 0.655f
+        val playX = screenW * 0.50f
+        val playY = screenH * 0.745f
+
+        scope.launch {
+            mainHandler.post {
+                Toast.makeText(this@FloatingHomeService, "🔄 Đang tự động đổi thế cờ Reroll...", Toast.LENGTH_SHORT).show()
+            }
+            accessService.performTap(gearX, gearY, 80L)
+            delay(700L)
+
+            accessService.performTap(exitX, exitY, 80L)
+            delay(1300L)
+
+            accessService.performTap(playX, playY, 80L)
+            delay(1500L)
+
+            mainHandler.post {
+                Toast.makeText(this@FloatingHomeService, "✨ Đã đổi thế cờ mới! Bấm 🍬 để AI tự đánh!", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
