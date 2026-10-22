@@ -37,6 +37,22 @@ class FloatingHomeService : Service() {
         const val ACTION_STOP_FLOATING = "action_stop_floating"
         var isServiceRunning: Boolean = false
             private set
+
+        var countHammer: Int = 999
+        var countUfo: Int = 999
+        var countHand: Int = 999
+        var countParty: Int = 999
+
+        @SuppressLint("StaticFieldLeak")
+        var instance: FloatingHomeService? = null
+
+        fun updateBoosterInventory(hammer: Int, ufo: Int, hand: Int, party: Int) {
+            countHammer = hammer
+            countUfo = ufo
+            countHand = hand
+            countParty = party
+            instance?.updateBoosterBadges()
+        }
     }
 
     private lateinit var windowManager: WindowManager
@@ -48,8 +64,17 @@ class FloatingHomeService : Service() {
     private lateinit var statusBadge: View
     private lateinit var moveCounterText: TextView
     private lateinit var btnExit: FrameLayout
+
+    // 4 nút Booster Hack nhanh kèm nhãn số lượng
     private lateinit var btnHammerQuick: FrameLayout
     private lateinit var btnUfoQuick: FrameLayout
+    private lateinit var btnHandQuick: FrameLayout
+    private lateinit var btnPartyQuick: FrameLayout
+
+    private lateinit var badgeHammer: TextView
+    private lateinit var badgeUfo: TextView
+    private lateinit var badgeHand: TextView
+    private lateinit var badgeParty: TextView
 
     private val detector = CandyDetector()
     private val solver = Match3Solver()
@@ -69,9 +94,36 @@ class FloatingHomeService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         isServiceRunning = true
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+
+        val prefs = getSharedPreferences("candy_booster_prefs", Context.MODE_PRIVATE)
+        countHammer = prefs.getInt("booster_hammer", 999)
+        countUfo = prefs.getInt("booster_ufo", 999)
+        countHand = prefs.getInt("booster_hand", 999)
+        countParty = prefs.getInt("booster_party", 999)
+
         createFloatingHomeButton()
+    }
+
+    fun updateBoosterBadges() {
+        mainHandler.post {
+            if (::badgeHammer.isInitialized) badgeHammer.text = countHammer.toString()
+            if (::badgeUfo.isInitialized) badgeUfo.text = countUfo.toString()
+            if (::badgeHand.isInitialized) badgeHand.text = countHand.toString()
+            if (::badgeParty.isInitialized) badgeParty.text = countParty.toString()
+        }
+    }
+
+    private fun saveBoosterCounts() {
+        getSharedPreferences("candy_booster_prefs", Context.MODE_PRIVATE).edit().apply {
+            putInt("booster_hammer", countHammer)
+            putInt("booster_ufo", countUfo)
+            putInt("booster_hand", countHand)
+            putInt("booster_party", countParty)
+            apply()
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -103,9 +155,9 @@ class FloatingHomeService : Service() {
             y = 450
         }
 
-        // Khung chứa toàn bộ (125dp x 82dp)
-        val containerWPx = dpToPx(130)
-        val containerHPx = dpToPx(82)
+        // Khung chứa toàn bộ (160dp x 90dp)
+        val containerWPx = dpToPx(160)
+        val containerHPx = dpToPx(90)
         floatingView = FrameLayout(this).apply {
             layoutParams = FrameLayout.LayoutParams(containerWPx, containerHPx)
         }
@@ -177,59 +229,81 @@ class FloatingHomeService : Service() {
         btnInner.addView(moveCounterText)
         mainRow.addView(btnInner)
 
-        // 2. Cột công cụ Booster nhanh bên cạnh (Búa 🔨 & Đĩa bay 🛸)
-        val boosterColumn = LinearLayout(this).apply {
+        // 2. Bảng Hack Booster 2x2 (🔨 Búa | 🛸 UFO | ✋ Bàn tay | 🎉 Party)
+        val boosterGrid = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
         }
 
-        val actionBtnSize = dpToPx(34)
+        val row1 = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
 
-        // Nút Búa thần kỳ (Lollipop Hammer)
-        btnHammerQuick = FrameLayout(this).apply {
-            val lp = LinearLayout.LayoutParams(actionBtnSize, actionBtnSize).apply {
-                setMargins(0, 0, 0, dpToPx(4))
-            }
-            layoutParams = lp
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(Color.parseColor("#FF9800")) // Cam rực rỡ
-                setStroke(dpToPx(1), Color.WHITE)
-            }
-            val t = TextView(this@FloatingHomeService).apply {
-                text = "🔨"
-                textSize = 15f
-                gravity = Gravity.CENTER
-            }
-            addView(t)
-            setOnClickListener {
-                triggerAutoHammerOnSkullOrStuck(5)
+        val (hFrame, hBadge) = createBoosterButton("🔨", "#FF9800", countHammer) {
+            if (countHammer > 0) {
+                countHammer--
+                saveBoosterCounts()
+                updateBoosterBadges()
+                triggerAutoHammerOnSkullOrStuck(1)
+            } else {
+                Toast.makeText(this@FloatingHomeService, "⚠️ Đã hết Búa! Mở app nhập thêm số lượng!", Toast.LENGTH_SHORT).show()
             }
         }
-        boosterColumn.addView(btnHammerQuick)
+        btnHammerQuick = hFrame
+        badgeHammer = hBadge
+        row1.addView(btnHammerQuick)
 
-        // Nút Đĩa bay UFO (UFO Booster)
-        btnUfoQuick = FrameLayout(this).apply {
-            val lp = LinearLayout.LayoutParams(actionBtnSize, actionBtnSize)
-            layoutParams = lp
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(Color.parseColor("#9C27B0")) // Tím
-                setStroke(dpToPx(1), Color.WHITE)
-            }
-            val t = TextView(this@FloatingHomeService).apply {
-                text = "🛸"
-                textSize = 15f
-                gravity = Gravity.CENTER
-            }
-            addView(t)
-            setOnClickListener {
+        val (uFrame, uBadge) = createBoosterButton("🛸", "#9C27B0", countUfo) {
+            if (countUfo > 0) {
+                countUfo--
+                saveBoosterCounts()
+                updateBoosterBadges()
                 triggerAutoUfo()
+            } else {
+                Toast.makeText(this@FloatingHomeService, "⚠️ Đã hết UFO! Mở app nhập thêm số lượng!", Toast.LENGTH_SHORT).show()
             }
         }
-        boosterColumn.addView(btnUfoQuick)
+        btnUfoQuick = uFrame
+        badgeUfo = uBadge
+        row1.addView(btnUfoQuick)
+        boosterGrid.addView(row1)
 
-        mainRow.addView(boosterColumn)
+        val row2 = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+
+        val (handFrame, handBadge) = createBoosterButton("✋", "#00BCD4", countHand) {
+            if (countHand > 0) {
+                countHand--
+                saveBoosterCounts()
+                updateBoosterBadges()
+                triggerAutoHand()
+            } else {
+                Toast.makeText(this@FloatingHomeService, "⚠️ Đã hết Bàn Tay! Mở app nhập thêm số lượng!", Toast.LENGTH_SHORT).show()
+            }
+        }
+        btnHandQuick = handFrame
+        badgeHand = handBadge
+        row2.addView(btnHandQuick)
+
+        val (pFrame, pBadge) = createBoosterButton("🎉", "#E91E63", countParty) {
+            if (countParty > 0) {
+                countParty--
+                saveBoosterCounts()
+                updateBoosterBadges()
+                triggerAutoParty()
+            } else {
+                Toast.makeText(this@FloatingHomeService, "⚠️ Đã hết Party! Mở app nhập thêm số lượng!", Toast.LENGTH_SHORT).show()
+            }
+        }
+        btnPartyQuick = pFrame
+        badgeParty = pBadge
+        row2.addView(btnPartyQuick)
+        boosterGrid.addView(row2)
+
+        mainRow.addView(boosterGrid)
         floatingView.addView(mainRow)
 
         // 3. Nút Đóng / Tắt bot (✕ màu đỏ)
@@ -260,6 +334,56 @@ class FloatingHomeService : Service() {
 
         setupTouchListener()
         windowManager.addView(floatingView, layoutParams)
+    }
+
+    private fun createBoosterButton(
+        icon: String,
+        bgColor: String,
+        initialCount: Int,
+        onClickAction: () -> Unit
+    ): Pair<FrameLayout, TextView> {
+        val btnSize = dpToPx(36)
+        val frame = FrameLayout(this).apply {
+            val lp = LinearLayout.LayoutParams(btnSize, btnSize).apply {
+                setMargins(dpToPx(2), dpToPx(2), dpToPx(2), dpToPx(2))
+            }
+            layoutParams = lp
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor(bgColor))
+                setStroke(dpToPx(1), Color.WHITE)
+            }
+        }
+
+        val tvIcon = TextView(this).apply {
+            text = icon
+            textSize = 15f
+            gravity = Gravity.CENTER
+        }
+        frame.addView(tvIcon)
+
+        val tvBadge = TextView(this).apply {
+            val lp = FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT).apply {
+                gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            }
+            layoutParams = lp
+            text = initialCount.toString()
+            textSize = 8.5f
+            setTextColor(Color.WHITE)
+            setPadding(dpToPx(2), 0, dpToPx(2), 0)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(3).toFloat()
+                setColor(Color.parseColor("#E6000000"))
+            }
+        }
+        frame.addView(tvBadge)
+
+        frame.setOnClickListener {
+            onClickAction()
+        }
+
+        return Pair(frame, tvBadge)
     }
 
     private fun setupTouchListener() {
@@ -460,6 +584,44 @@ class FloatingHomeService : Service() {
         }
     }
 
+    /**
+     * TỰ ĐỘNG BẬT BÀN TAY TỰ DO (FREE SWITCH)
+     */
+    fun triggerAutoHand() {
+        val accessService = CandyAccessibilityService.instance ?: return
+        val metrics = resources.displayMetrics
+        val screenW = metrics.widthPixels
+        val screenH = metrics.heightPixels
+        val (handX, handY) = detector.getBoosterScreenCoords("HAND", screenW, screenH)
+
+        scope.launch {
+            mainHandler.post {
+                Toast.makeText(this@FloatingHomeService, "✋ Đang bật Bàn Tay Tự Do (Free Switch)!", Toast.LENGTH_SHORT).show()
+            }
+            accessService.performTap(handX, handY, 80L)
+            delay(500L)
+        }
+    }
+
+    /**
+     * TỰ ĐỘNG BẬT BỮA TIỆC PINATA (PARTY BOOSTER)
+     */
+    fun triggerAutoParty() {
+        val accessService = CandyAccessibilityService.instance ?: return
+        val metrics = resources.displayMetrics
+        val screenW = metrics.widthPixels
+        val screenH = metrics.heightPixels
+        val (partyX, partyY) = detector.getBoosterScreenCoords("PARTY", screenW, screenH)
+
+        scope.launch {
+            mainHandler.post {
+                Toast.makeText(this@FloatingHomeService, "🎉 Đang kích hoạt Bữa Tiệc Pinata Party!", Toast.LENGTH_SHORT).show()
+            }
+            accessService.performTap(partyX, partyY, 80L)
+            delay(1500L)
+        }
+    }
+
     private fun areGridsEqual(g1: Array<IntArray>, g2: Array<IntArray>): Boolean {
         for (r in g1.indices) {
             for (c in g1[r].indices) {
@@ -490,6 +652,7 @@ class FloatingHomeService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        instance = null
         stopAutoAndExit()
         scope.cancel()
     }
