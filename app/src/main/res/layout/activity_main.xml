@@ -24,7 +24,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Bản v1.0.5 - Smart Booster 999 &amp; King AI (Cập nhật trực tiếp)"
+            android:text="Bản v1.0.6 - Custom Booster Hack 999+ (Tự do chỉnh số lượng)"
             android:textColor="#4CAF50"
             android:textSize="14sp"
             android:textStyle="bold"
@@ -113,6 +113,159 @@
                 android:text="3. Bật Chụp Màn Hình HD (Khuyến nghị)"
                 android:backgroundTint="#009688"
                 android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <!-- Card Tùy Chỉnh Số Lượng Hack Booster -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#232336"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⚡ TÙY CHỈNH SỐ LƯỢNG BOOSTER HACK"
+                android:textColor="#00E676"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tự do nhập số lượng bất kỳ (ví dụ 999 hoặc 9999). Dùng đến đâu tự trừ đến đó!"
+                android:textColor="#B0BEC5"
+                android:textSize="11.5sp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- 1. Búa Lollipop -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="🔨 Búa Kẹo Mút (Hammer):"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp" />
+
+                <EditText
+                    android:id="@+id/etHammerCount"
+                    android:layout_width="90dp"
+                    android:layout_height="40dp"
+                    android:background="#121218"
+                    android:textColor="#FFD54F"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:inputType="number"
+                    android:text="999" />
+            </LinearLayout>
+
+            <!-- 2. Đĩa Bay UFO -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="🛸 Đĩa Bay Vũ Trụ (UFO):"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp" />
+
+                <EditText
+                    android:id="@+id/etUfoCount"
+                    android:layout_width="90dp"
+                    android:layout_height="40dp"
+                    android:background="#121218"
+                    android:textColor="#CE93D8"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:inputType="number"
+                    android:text="999" />
+            </LinearLayout>
+
+            <!-- 3. Bàn Tay Tráo Kẹo (Free Switch) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="✋ Bàn Tay Tự Do (Free Switch):"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp" />
+
+                <EditText
+                    android:id="@+id/etHandCount"
+                    android:layout_width="90dp"
+                    android:layout_height="40dp"
+                    android:background="#121218"
+                    android:textColor="#80D8FF"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:inputType="number"
+                    android:text="999" />
+            </LinearLayout>
+
+            <!-- 4. Tiệc Pinata (Party Booster) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="🎉 Bữa Tiệc Pinata (Party):"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp" />
+
+                <EditText
+                    android:id="@+id/etPartyCount"
+                    android:layout_width="90dp"
+                    android:layout_height="40dp"
+                    android:background="#121218"
+                    android:textColor="#FF8A80"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:inputType="number"
+                    android:text="999" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnSaveBoosters"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:text="💾 LƯU SỐ LƯỢNG HACK BOOSTER"
+                android:backgroundTint="#00C853"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="13.5sp" />
         </LinearLayout>
 
         <Button
