@@ -31,17 +31,33 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnStartFloating: Button
     private lateinit var btnStopFloating: Button
 
+    // Cấu hình Hack Booster
+    private lateinit var etHammerCount: android.widget.EditText
+    private lateinit var etUfoCount: android.widget.EditText
+    private lateinit var etHandCount: android.widget.EditText
+    private lateinit var etPartyCount: android.widget.EditText
+    private lateinit var btnSaveBoosters: Button
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         initViews()
+        loadBoosterSettings()
         updatePermissionStates()
     }
 
     override fun onResume() {
         super.onResume()
         updatePermissionStates()
+    }
+
+    private fun loadBoosterSettings() {
+        val prefs = getSharedPreferences("candy_booster_prefs", Context.MODE_PRIVATE)
+        etHammerCount.setText(prefs.getInt("booster_hammer", 999).toString())
+        etUfoCount.setText(prefs.getInt("booster_ufo", 999).toString())
+        etHandCount.setText(prefs.getInt("booster_hand", 999).toString())
+        etPartyCount.setText(prefs.getInt("booster_party", 999).toString())
     }
 
     private fun initViews() {
@@ -53,6 +69,30 @@ class MainActivity : AppCompatActivity() {
         btnStartCapture = findViewById(R.id.btnStartCapture)
         btnStartFloating = findViewById(R.id.btnStartFloating)
         btnStopFloating = findViewById(R.id.btnStopFloating)
+
+        etHammerCount = findViewById(R.id.etHammerCount)
+        etUfoCount = findViewById(R.id.etUfoCount)
+        etHandCount = findViewById(R.id.etHandCount)
+        etPartyCount = findViewById(R.id.etPartyCount)
+        btnSaveBoosters = findViewById(R.id.btnSaveBoosters)
+
+        btnSaveBoosters.setOnClickListener {
+            val hammer = etHammerCount.text.toString().toIntOrNull() ?: 999
+            val ufo = etUfoCount.text.toString().toIntOrNull() ?: 999
+            val hand = etHandCount.text.toString().toIntOrNull() ?: 999
+            val party = etPartyCount.text.toString().toIntOrNull() ?: 999
+
+            getSharedPreferences("candy_booster_prefs", Context.MODE_PRIVATE).edit().apply {
+                putInt("booster_hammer", hammer)
+                putInt("booster_ufo", ufo)
+                putInt("booster_hand", hand)
+                putInt("booster_party", party)
+                apply()
+            }
+
+            FloatingHomeService.updateBoosterInventory(hammer, ufo, hand, party)
+            Toast.makeText(this, "💾 Đã lưu cấu hình Hack: Búa $hammer | UFO $ufo | Bàn tay $hand | Party $party!", Toast.LENGTH_SHORT).show()
+        }
 
         btnGrantOverlay.setOnClickListener {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
