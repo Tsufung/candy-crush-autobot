@@ -24,7 +24,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Bản v1.0.6 - Custom Booster Hack 999+ (Tự do chỉnh số lượng)"
+            android:text="Bản v1.0.7 - Auto Mod Engine (Không cần cài thêm app)"
             android:textColor="#4CAF50"
             android:textSize="14sp"
             android:textStyle="bold"
